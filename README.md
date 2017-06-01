@@ -1,4 +1,6 @@
-# [WIP] Procedural smooth voxel terrain plugin for UE4 
+# [WIP] Procedural smooth voxel terrain plugin for UE4
+
+## Designed to work with the Unreal Polygonal Map Generator
 
 **Work in progress**
 
