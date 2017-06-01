@@ -96,7 +96,6 @@ struct FSandboxTerrainMaterial {
 UCLASS()
 class UNREALSANDBOXTERRAIN_API ASandboxTerrainController : public AActor {
 	GENERATED_UCLASS_BODY()
-
 public:
 	ASandboxTerrainController();
 
@@ -112,6 +111,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void PostLoad() override;
+
 
 	//========================================================================================
 	// debug only
@@ -132,6 +132,9 @@ public:
 	//========================================================================================
 	// debug only
 	//========================================================================================
+
+	UFUNCTION()
+	virtual void InitializeController();
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Start Build Sandbox Terrain"))
 	void OnStartBuildTerrain();
@@ -219,7 +222,7 @@ public:
 	template<class H>
 	void PerformTerrainChange(FVector v, float radius, float s, H handler);
 
-	virtual SandboxVoxelGenerator newTerrainGenerator(TVoxelData &voxel_data);
+	virtual SandboxVoxelGenerator* newTerrainGenerator(TVoxelData &voxel_data);
 
 	UMaterialInterface* GetRegularTerrainMaterial(uint16 MaterialId);
 

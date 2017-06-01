@@ -106,87 +106,7 @@ void ASandboxTerrainController::PostLoad() {
 
 void ASandboxTerrainController::BeginPlay() {
 	Super::BeginPlay();
-	UE_LOG(LogTemp, Warning, TEXT("ASandboxTerrainController ---> BeginPlay"));
-
-	if (!GetWorld()) return;
-
-	if (GetWorld()->GetAuthGameMode() != NULL) {
-		UE_LOG(LogTemp, Warning, TEXT("SERVER"));
-	} else {
-		UE_LOG(LogTemp, Warning, TEXT("CLIENT"));
-	}
-
-	//===========================
-	// load existing
-	//===========================
-	RegionIndexSet.Empty();
-	OnStartBuildTerrain();
-	LoadJson(RegionIndexSet);
-
-	// load initial region
-	UTerrainRegionComponent* Region1 = GetOrCreateRegion(FVector(0, 0, 0));
-	Region1->LoadFile();
-
-	// spawn initial zone
-	TSet<FVector> InitialZoneSet = SpawnInitialZone();
-
-	// async loading other zones
-	RunThread([&](FAsyncThread& ThisThread) {
-		Region1->ForEachMeshData([&](FVector& Index, TMeshDataPtr& MeshDataPtr) {
-			if (ThisThread.CheckState()) return;
-			FVector Pos = FVector((float)(Index.X * 1000), (float)(Index.Y * 1000), (float)(Index.Z * 1000));
-			SpawnZone(Pos);
-		});
-
-		if (ThisThread.CheckState()) return;
-
-		Region1->LoadVoxelData();
-
-		if (ThisThread.CheckState()) return;
-
-		for (FVector RegionIndex : RegionIndexSet) {
-			if (RegionIndex.Equals(FVector::ZeroVector)) {
-				continue;
-			}
-
-			UTerrainRegionComponent* Region2 = GetOrCreateRegion(GetRegionPos(RegionIndex));
-			Region2->LoadFile();
-			if (ThisThread.CheckState()) return;
-
-			Region2->ForEachMeshData([&](FVector& Index, TMeshDataPtr& MeshDataPtr) {
-				if (ThisThread.CheckState()) return;
-				FVector Pos = FVector((float)(Index.X * 1000), (float)(Index.Y * 1000), (float)(Index.Z * 1000));
-				SpawnZone(Pos);
-			});
-			if (ThisThread.CheckState()) return;
-
-			Region2->LoadVoxelData();
-			if (ThisThread.CheckState()) return;
-		}
-
-		if (!bGenerateOnlySmallSpawnPoint) {
-			for (int x = -TerrainSizeX; x <= TerrainSizeX; x++) {
-				for (int y = -TerrainSizeY; y <= TerrainSizeY; y++) {
-					for (int z = -TerrainSizeZ; z <= TerrainSizeZ; z++) {
-						FVector Index = FVector(x, y, z);
-						FVector Pos = GetZonePos(Index);
-						if (ThisThread.CheckState()) return;
-
-						if (!VoxelDataMap.Contains(Index)) {
-							SpawnZone(Pos);
-						}
-
-						if (ThisThread.CheckState()) return;
-					}
-				}
-			}
-		}
-
-		RunThread([&](FAsyncThread& ThisThread) {
-			OnFinishBuildTerrain();
-		});
-
-	});
+	InitializeController();
 }
 
 void ASandboxTerrainController::EndPlay(const EEndPlayReason::Type EndPlayReason) {
@@ -410,8 +330,93 @@ void ASandboxTerrainController::LoadJson(TSet<FVector>& RegionIndexSet) {
 	}
 }
 
-SandboxVoxelGenerator ASandboxTerrainController::newTerrainGenerator(TVoxelData &voxel_data) {
-	return SandboxVoxelGenerator(voxel_data, Seed);
+void ASandboxTerrainController::InitializeController() {
+	UE_LOG(LogTemp, Warning, TEXT("ASandboxTerrainController ---> BeginPlay"));
+
+	if (!GetWorld()) return;
+
+	if (GetWorld()->GetAuthGameMode() != NULL) {
+		UE_LOG(LogTemp, Warning, TEXT("SERVER"));
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("CLIENT"));
+	}
+
+	//===========================
+	// load existing
+	//===========================
+	RegionIndexSet.Empty();
+	OnStartBuildTerrain();
+	LoadJson(RegionIndexSet);
+
+	// load initial region
+	UTerrainRegionComponent* Region1 = GetOrCreateRegion(FVector(0, 0, 0));
+	Region1->LoadFile();
+
+	// spawn initial zone
+	TSet<FVector> InitialZoneSet = SpawnInitialZone();
+
+	// async loading other zones
+	RunThread([&](FAsyncThread& ThisThread) {
+		Region1->ForEachMeshData([&](FVector& Index, TMeshDataPtr& MeshDataPtr) {
+			if (ThisThread.CheckState()) return;
+			FVector Pos = FVector((float)(Index.X * 1000), (float)(Index.Y * 1000), (float)(Index.Z * 1000));
+			SpawnZone(Pos);
+		});
+
+		if (ThisThread.CheckState()) return;
+
+		Region1->LoadVoxelData();
+
+		if (ThisThread.CheckState()) return;
+
+		for (FVector RegionIndex : RegionIndexSet) {
+			if (RegionIndex.Equals(FVector::ZeroVector)) {
+				continue;
+			}
+
+			UTerrainRegionComponent* Region2 = GetOrCreateRegion(GetRegionPos(RegionIndex));
+			Region2->LoadFile();
+			if (ThisThread.CheckState()) return;
+
+			Region2->ForEachMeshData([&](FVector& Index, TMeshDataPtr& MeshDataPtr) {
+				if (ThisThread.CheckState()) return;
+				FVector Pos = FVector((float)(Index.X * 1000), (float)(Index.Y * 1000), (float)(Index.Z * 1000));
+				SpawnZone(Pos);
+			});
+			if (ThisThread.CheckState()) return;
+
+			Region2->LoadVoxelData();
+			if (ThisThread.CheckState()) return;
+		}
+
+		if (!bGenerateOnlySmallSpawnPoint) {
+			for (int x = 0; x <= TerrainSizeX; x++) {
+				for (int y = 0; y <= TerrainSizeY; y++) {
+					for (int z = 0; z <= TerrainSizeZ; z++) {
+						FVector Index = FVector(x, y, z);
+						FVector Pos = GetZonePos(Index);
+						if (ThisThread.CheckState()) return;
+
+						if (!VoxelDataMap.Contains(Index)) {
+							SpawnZone(Pos);
+						}
+
+						if (ThisThread.CheckState()) return;
+					}
+				}
+			}
+		}
+
+		RunThread([&](FAsyncThread& ThisThread) {
+			OnFinishBuildTerrain();
+		});
+
+	});
+}
+
+SandboxVoxelGenerator* ASandboxTerrainController::newTerrainGenerator(TVoxelData &voxel_data) {
+	return new SandboxVoxelGenerator(voxel_data, Seed);
 };
 
 void ASandboxTerrainController::InvokeSafe(std::function<void()> Function) {
@@ -996,7 +1001,7 @@ TVoxelData* ASandboxTerrainController::FindOrCreateZoneVoxeldata(FVector Locatio
 
 void ASandboxTerrainController::generateTerrain(TVoxelData &voxel_data) {
 	double start = FPlatformTime::Seconds();
-	SandboxVoxelGenerator generator = newTerrainGenerator(voxel_data);
+	SandboxVoxelGenerator& generator = *newTerrainGenerator(voxel_data);
 
 	TSet<unsigned char> material_list;
 	int zc = 0; int fc = 0;
@@ -1021,6 +1026,7 @@ void ASandboxTerrainController::generateTerrain(TVoxelData &voxel_data) {
 			}
 		}
 	}
+	delete &generator;
 
 	int s = voxel_data.num() * voxel_data.num() * voxel_data.num();
 
@@ -1046,7 +1052,6 @@ void ASandboxTerrainController::generateTerrain(TVoxelData &voxel_data) {
 	double end = FPlatformTime::Seconds();
 	double time = (end - start) * 1000;
 	UE_LOG(LogTemp, Warning, TEXT("ASandboxTerrainController::generateTerrain ----> %f %f %f --> %f ms"), voxel_data.getOrigin().X, voxel_data.getOrigin().Y, voxel_data.getOrigin().Z, time);
-
 }
 
 

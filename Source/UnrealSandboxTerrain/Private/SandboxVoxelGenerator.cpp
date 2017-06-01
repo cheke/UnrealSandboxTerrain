@@ -1,9 +1,6 @@
 
 #include "UnrealSandboxTerrainPrivatePCH.h"
 #include "SandboxVoxelGenerator.h"
-#include "SandboxVoxeldata.h"
-#include "SandboxPerlinNoise.h"
-
 
 usand::PerlinNoise pn;
 
@@ -29,7 +26,8 @@ float densityByGroundLevel(FVector v) {
 
 	if (v.Z > gl + 400) {
 		val = 0;
-	} else if (v.Z > gl) {
+	}
+	else if (v.Z > gl) {
 		float d = (1 / (v.Z - gl)) * 100;
 		val = d;
 	}
@@ -73,7 +71,6 @@ float clcGroundLevelDelta(FVector v) {
 	return groundLevel(v) - v.Z;
 }
 
-
 SandboxVoxelGenerator::SandboxVoxelGenerator(TVoxelData& vd, int32 Seed) {
 	int32 zone_seed = vectorHash(vd.getOrigin()) ^ (Seed * 32168710);
 
@@ -88,10 +85,6 @@ SandboxVoxelGenerator::SandboxVoxelGenerator(TVoxelData& vd, int32 Seed) {
 			this->cavern = true;
 		}
 	}
-}
-
-SandboxVoxelGenerator::~SandboxVoxelGenerator() {
-
 }
 
 float SandboxVoxelGenerator::density(FVector& local, FVector& world) {
@@ -118,11 +111,13 @@ unsigned char SandboxVoxelGenerator::material(FVector& local, FVector& world) {
 
 	if (densityUpper < 0.5) {
 		mat = 2; // grass
-	} else {
+	}
+	else {
 
-		if(world.Z < -350) {
+		if (world.Z < -350) {
 			mat = 4; // basalt
-		} else {
+		}
+		else {
 			mat = 1; // dirt
 		}
 	}

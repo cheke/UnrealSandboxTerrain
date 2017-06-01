@@ -2,20 +2,15 @@
 
 #include "EngineMinimal.h"
 
-class TVoxelData;
+#include "UnrealSandboxTerrain/Private/SandboxVoxeldata.h"
+#include "UnrealSandboxTerrain/Private/SandboxPerlinNoise.h"
 
 class SandboxVoxelGenerator {
+private:
+	bool cavern;
 
 public:
 	SandboxVoxelGenerator(TVoxelData& vd, int32 Seed);
-
-	~SandboxVoxelGenerator();
-
 	virtual float density(FVector& local, FVector& world);
-
 	virtual unsigned char material(FVector& local, FVector& world);
-
-private:
-
-	bool cavern;
 };

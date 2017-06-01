@@ -33,7 +33,8 @@ public class UnrealSandboxTerrain : ModuleRules
                 "ShaderCore",
                 "RHI",
                 "Json",
-                "JsonUtilities"
+                "JsonUtilities",
+		"PolygonalMapGenerator"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -49,7 +50,8 @@ public class UnrealSandboxTerrain : ModuleRules
                 "ShaderCore",
                 "RHI",
                 "Json",
-                "JsonUtilities"
+                "JsonUtilities",
+		"PolygonalMapGenerator"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
