@@ -69,9 +69,9 @@ float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 			UE_LOG(LogTemp, Error, TEXT("Polygon at coordinates (%f, %f) was not a triangle (%d vertices)."), mapCoordinates.X, mapCoordinates.Y, corner.Touches.Num());
 			return 0.0f;
 		}
-		FMapCenter pointACenter = MapData->GetCenter(corner.Touches[0]);
-		FMapCenter pointBCenter = MapData->GetCenter(corner.Touches[1]);
-		FMapCenter pointCCenter = MapData->GetCenter(corner.Touches[2]);
+		FMapCenter& pointACenter = *corner.Touches[0];
+		FMapCenter& pointBCenter = *corner.Touches[1];
+		FMapCenter& pointCCenter = *corner.Touches[2];
 
 		FVector pointA = FVector(pointACenter.CenterData.Point.X, pointACenter.CenterData.Point.Y, pointACenter.CenterData.Elevation);
 		FVector pointB = FVector(pointBCenter.CenterData.Point.X, pointBCenter.CenterData.Point.Y, pointBCenter.CenterData.Elevation);
