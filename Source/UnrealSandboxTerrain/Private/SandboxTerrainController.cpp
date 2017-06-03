@@ -1232,6 +1232,7 @@ UMaterialInterface* ASandboxTerrainController::GetRegularTerrainMaterial(uint16 
 			//DynMaterial->SetTextureParameterValue("TextureSideMicro", Mat.TextureSideMicro);
 			DynMaterial->SetTextureParameterValue("TextureMacro", Mat.TextureMacro);
 			DynMaterial->SetTextureParameterValue("TextureNormal", Mat.TextureNormal);
+			DynMaterial->SetVectorParameterValue("Color", Mat.TextureColor);
 		}
 
 		RegularMaterialCache.Add(MaterialId, DynMaterial);

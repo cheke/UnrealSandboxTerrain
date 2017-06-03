@@ -91,6 +91,9 @@ struct FSandboxTerrainMaterial {
 
 	UPROPERTY(EditAnywhere)
 	UTexture* TextureNormal;
+
+	UPROPERTY(EditAnywhere)
+	FLinearColor TextureColor;
 };
 
 UCLASS()
@@ -149,9 +152,25 @@ public:
 	// materials
 	//========================================================================================
 
+	// A material which will be used to render most of our terrain.
+	// The following parameters are expected:
+	// * TextureTopMicro, for detail work on "top" of the polygon
+	// * TextureMacro, for the "base" of the polygon
+	// * TextureNormal, for any normal mapping on the polygon
+	// * TextureColor, for the color of the polygon
+	// Note that if you don't want to use any of these features, just don't
+	// implement that particular parameter in your material.
 	UPROPERTY(EditAnywhere, Category = "UnrealSandbox Terrain Material")
 	UMaterialInterface* RegularMaterial;
 
+	// A material which will be used to render most of our terrain.
+	// The following parameters are expected:
+	// * TextureTopMicro, for detail work on "top" of the polygon
+	// * TextureMacro, for the "base" of the polygon
+	// * TextureNormal, for any normal mapping on the polygon
+	// * TextureColor, for the color of the polygon
+	// Note that if you don't want to use any of these features, just don't
+	// implement that particular parameter in your material.
 	UPROPERTY(EditAnywhere, Category = "UnrealSandbox Terrain Material")
 	UMaterialInterface* TransitionMaterial;
 

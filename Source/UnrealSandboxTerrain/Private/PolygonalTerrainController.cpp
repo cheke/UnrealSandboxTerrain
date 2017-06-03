@@ -29,5 +29,5 @@ void APolygonalTerrainController::InitializeController()
 SandboxVoxelGenerator* APolygonalTerrainController::newTerrainGenerator(TVoxelData &voxel_data)
 {
 	UE_LOG(LogTemp, Log, TEXT("Polygonal Terrain Controller -> Fetch Generator"));
-	return new PolygonalVoxelGenerator(voxel_data, Seed, PolygonalMapGenerator->GetGraph());
+	return new PolygonalVoxelGenerator(voxel_data, Seed, PolygonalMapGenerator->GetGraph(), (UWhittakerBiomeManager*)PolygonalMapGenerator->BiomeManager);
 }

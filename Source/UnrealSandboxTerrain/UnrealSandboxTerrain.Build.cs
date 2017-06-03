@@ -34,7 +34,8 @@ public class UnrealSandboxTerrain : ModuleRules
                 "RHI",
                 "Json",
                 "JsonUtilities",
-		"PolygonalMapGenerator"
+                "PolygonalMapGenerator",
+                "GameplayTags"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -51,7 +52,8 @@ public class UnrealSandboxTerrain : ModuleRules
                 "RHI",
                 "Json",
                 "JsonUtilities",
-		"PolygonalMapGenerator"
+		        "PolygonalMapGenerator",
+                "GameplayTags"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

@@ -2,13 +2,18 @@
 
 #include "UnrealSandboxTerrainPrivatePCH.h"
 #include "PolygonalVoxelGenerator.h"
+#include "PolygonalMapGenerator/Public/Maps/MapDataHelper.h"
 #include "UnrealSandboxTerrain/Public/SandboxVoxelGenerator.h"
 
+TMap<FVector2D, FMapCorner> PolygonalVoxelGenerator::CachedData = TMap<FVector2D, FMapCorner>();
 TMap<FVector2D, float> PolygonalVoxelGenerator::CachedPositions = TMap<FVector2D, float>();
+TMap<FVector2D, EWhittakerBiome> PolygonalVoxelGenerator::CachedBiomes = TMap<FVector2D, EWhittakerBiome>();
 
-PolygonalVoxelGenerator::PolygonalVoxelGenerator(TVoxelData& vd, int32 Seed, UPolygonMap* PolygonMapData) : SandboxVoxelGenerator(vd, Seed)
+PolygonalVoxelGenerator::PolygonalVoxelGenerator(TVoxelData& vd, int32 Seed, UPolygonMap* PolygonMapData, UWhittakerBiomeManager* BiomeMapData) : SandboxVoxelGenerator(vd, Seed)
 {
 	MapData = PolygonMapData;
+	BiomeData = BiomeMapData;
+	bUseSmoothEdges = false;
 }
 
 float PolygonalVoxelGenerator::CalculateZPosition(FVector p1, FVector p2, FVector p3, FVector2D xyLoc)
@@ -45,9 +50,55 @@ float PolygonalVoxelGenerator::CalculateZPosition(FVector p1, FVector p2, FVecto
 	return lambda1 * z1 + lambda2 * z2 + lambda3 * z3;
 }
 
+FMapCorner PolygonalVoxelGenerator::FetchMapCorner(FVector2D& IntMapCoordinates, EWhittakerBiome& InBiome)
+{
+	if (CachedData.Contains(IntMapCoordinates) && CachedBiomes.Contains(IntMapCoordinates))
+	{
+		InBiome = CachedBiomes[IntMapCoordinates];
+		return CachedData[IntMapCoordinates];
+	}
+
+	FMapCorner corner = MapData->FindMapCornerForCoordinate(IntMapCoordinates);
+	if (corner.Touches.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("No polygon at coordinates (%f, %f)."), IntMapCoordinates.X, IntMapCoordinates.Y);
+		corner = FMapCorner();
+		InBiome = EWhittakerBiome::Ocean;
+	}
+	else if (corner.Touches.Num() != 3)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Polygon at coordinates (%f, %f) was not a triangle (%d vertices)."), IntMapCoordinates.X, IntMapCoordinates.Y, corner.Touches.Num());
+		corner = FMapCorner();
+		InBiome = EWhittakerBiome::Ocean;
+	}
+	else
+	{
+		InBiome = BiomeData->ConvertToWhittakerBiomeEnum(corner.CornerData.Biome);
+		if (!UMapDataHelper::IsWater(corner.CornerData) && !UMapDataHelper::IsRiver(corner.CornerData) && InBiome == EWhittakerBiome::Ocean)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Biome not tagged as water, but got an ocean biome anyway!"));
+			InBiome = EWhittakerBiome::TropicalRainForest;
+		}
+	}
+
+	CachedData.Add(IntMapCoordinates, corner);
+	CachedBiomes.Add(IntMapCoordinates, InBiome);
+
+	return corner;
+}
+
 float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 {
-	FVector2D mapCoordinates = FVector2D(int32(world.X / 100.0f), int32(world.Y / 100.0f));
+	FVector2D intMapCoordinates = FVector2D((int32)(world.X / 100.0f), (int32)(world.Y / 100.0f));
+	FVector2D mapCoordinates; 
+	if (bUseSmoothEdges)
+	{
+		mapCoordinates = FVector2D(world.X / 100.0f, world.Y / 100.0f);
+	}
+	else
+	{
+		mapCoordinates = intMapCoordinates;
+	}
 	float groundLevel;
 
 	if (CachedPositions.Contains(mapCoordinates))
@@ -56,19 +107,16 @@ float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 	}
 	else
 	{
-		FMapCorner corner = MapData->FindMapCornerForCoordinate(mapCoordinates);
-		if (corner.Touches.Num() == 0)
+		EWhittakerBiome biome;
+		FMapCorner corner = FetchMapCorner(intMapCoordinates, biome);
+		if (corner.Index < 0)
 		{
+			// Not a valid corner
 			CachedPositions.Add(mapCoordinates, 0.0f);
-			UE_LOG(LogTemp, Error, TEXT("No polygon at coordinates (%f, %f)."), mapCoordinates.X, mapCoordinates.Y);
+			CachedBiomes.Add(mapCoordinates, biome);
 			return 0.0f;
 		}
-		if (corner.Touches.Num() != 3)
-		{
-			CachedPositions.Add(mapCoordinates, 0.0f);
-			UE_LOG(LogTemp, Error, TEXT("Polygon at coordinates (%f, %f) was not a triangle (%d vertices)."), mapCoordinates.X, mapCoordinates.Y, corner.Touches.Num());
-			return 0.0f;
-		}
+
 		FMapCenter pointACenter = MapData->GetCenter(corner.Touches[0]);
 		FMapCenter pointBCenter = MapData->GetCenter(corner.Touches[1]);
 		FMapCenter pointCCenter = MapData->GetCenter(corner.Touches[2]);
@@ -77,9 +125,12 @@ float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 		FVector pointB = FVector(pointBCenter.CenterData.Point.X, pointBCenter.CenterData.Point.Y, pointBCenter.CenterData.Elevation);
 		FVector pointC = FVector(pointCCenter.CenterData.Point.X, pointCCenter.CenterData.Point.Y, pointCCenter.CenterData.Elevation);
 		
-		groundLevel = CalculateZPosition(pointA, pointB, pointC, mapCoordinates) * 2550.0f;
-		UE_LOG(LogTemp, Warning, TEXT("Elevation at coordinates (%f, %f): %f"), mapCoordinates.X, mapCoordinates.Y, groundLevel);
+		groundLevel = CalculateZPosition(pointA, pointB, pointC, mapCoordinates) * 2560.0f;
+		
+		//UE_LOG(LogTemp, Warning, TEXT("Elevation at coordinates (%f, %f): %f; Biome: %s"), mapCoordinates.X, mapCoordinates.Y, groundLevel, *corner.CornerData.Biome.ToString());
+		
 		CachedPositions.Add(mapCoordinates, groundLevel);
+		CachedBiomes.Add(mapCoordinates, biome);
 	}
 
 	float val = 1;
@@ -89,7 +140,7 @@ float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 	}
 	else if (world.Z > groundLevel)
 	{
-		float d = (1 / (world.Z - groundLevel)) * 100;
+		float d = (1 / (world.Z - groundLevel)) * 100.0f;
 		val = d;
 	}
 
@@ -98,39 +149,72 @@ float PolygonalVoxelGenerator::density(FVector& local, FVector& world)
 		val = 1;
 	}
 
-	if (val < 0.003)
+	if (val < 0.003f)
 	{ // minimal density = 1f/255
-		val = 0;
+		val = 0.0f;
 	}
 
 	return val;
 }
 
 unsigned char PolygonalVoxelGenerator::material(FVector& local, FVector& world) {
-	FVector test = FVector(world);
+	/*FVector test = FVector(world);
 	test.Z += 30;
 
-	float densityUpper = density(test, world);
+	float densityUpper = density(test, world);*/
+	FVector2D mapCoordinates = FVector2D((int32)(world.X / 100.0f), (int32)(world.Y / 100.0f));
 
-	unsigned char mat = 0;
+	EWhittakerBiome biome;
+	FetchMapCorner(mapCoordinates, biome);
+	return (unsigned char)biome;
 
-	if (densityUpper < 0.5) {
-		mat = 2; // grass
+	/*unsigned char mat;
+	if (CachedBiomes.Contains(mapCoordinates))
+	{
+		mat = (unsigned char)CachedBiomes[mapCoordinates];
+		UE_LOG(LogTemp, Log, TEXT("Material ID: %d"), mat);
 	}
-	else {
-
-		if (world.Z < -350) {
-			mat = 4; // basalt
-		}
-		else {
-			mat = 1; // dirt
-		}
+	else
+	{
+		mat = (unsigned char)EWhittakerBiome::Ocean;
 	}
-
 	return mat;
+
+	/*float pointDensity;
+	if (CachedPositions.Contains(mapCoordinates))
+	{
+		pointDensity = CachedPositions[mapCoordinates];
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Material cache miss!"));
+		pointDensity = density(local, world);
+	}*/
+
+	/*unsigned char mat = 0;
+
+	if (pointDensity < 0.0f)
+	{
+		// Guaranteed to have this position in the biome lookup, since density is not 0
+		mat = (unsigned char)CachedBiomes[mapCoordinates];
+	}
+	else
+	{
+		if (world.Z < -350)
+		{
+			mat = (unsigned char)EWhittakerBiome::Scorched; // Rock
+		}
+		else
+		{
+			mat = (unsigned char)EWhittakerBiome::Bare; // Dirt
+		}
+	}
+	return mat;*/
 }
 
 void PolygonalVoxelGenerator::ClearCachedPositions()
 {
+	CachedData.Empty();
 	CachedPositions.Empty();
+	CachedBiomes.Empty();
 }
