@@ -5,11 +5,12 @@
 #include "EngineMinimal.h"
 #include "SandboxTerrainMeshComponent.h"
 #include "SandboxTerrainCollisionComponent.h"
+#include "SandboxTerrainController.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "TerrainZoneComponent.generated.h"
 
 
-class ASandboxTerrainController;
+//class ASandboxTerrainController;
 
 /**
 *

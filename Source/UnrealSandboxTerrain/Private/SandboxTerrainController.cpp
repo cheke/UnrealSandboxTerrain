@@ -1198,6 +1198,7 @@ void ASandboxTerrainController::SpawnFoliage(int32 FoliageTypeId, FSandboxFoliag
 				FTerrainInstancedMeshType MeshType;
 				MeshType.MeshTypeId = FoliageTypeId;
 				MeshType.Mesh = FoliageType.Mesh;
+				MeshType.Materials = FoliageType.Materials;
 				MeshType.StartCullDistance = FoliageType.StartCullDistance;
 				MeshType.EndCullDistance = FoliageType.EndCullDistance;
 

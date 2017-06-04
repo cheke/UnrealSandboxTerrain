@@ -209,11 +209,14 @@ void UTerrainZoneComponent::SpawnInstancedMesh(FTerrainInstancedMeshType& MeshTy
 		InstancedStaticMeshComponent->SetCullDistances(MeshType.StartCullDistance, MeshType.EndCullDistance);
 		InstancedStaticMeshComponent->SetMobility(EComponentMobility::Static);
 		InstancedStaticMeshComponent->SetSimulatePhysics(false);
-
+		for (int i = 0; i < MeshType.Materials.Num(); i++)
+		{
+			InstancedStaticMeshComponent->SetMaterial(i, MeshType.Materials[i]);
+		}
 		//InstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-		InstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		InstancedStaticMeshComponent->SetCollisionProfileName(TEXT("OverlapAll"));
+		InstancedStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		InstancedStaticMeshComponent->SetCollisionProfileName(TEXT("BlockAll"));
 
 		InstancedMeshMap.Add(MeshType.MeshTypeId, InstancedStaticMeshComponent);
 	}

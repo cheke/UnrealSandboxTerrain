@@ -47,6 +47,9 @@ struct FTerrainInstancedMeshType {
 
 	UPROPERTY()
 	int32 EndCullDistance;
+
+	UPROPERTY()
+	TArray<UMaterialInterface*> Materials;
 };
 
 USTRUCT()
@@ -55,6 +58,9 @@ struct FSandboxFoliage {
 
 	UPROPERTY(EditAnywhere)
 	UStaticMesh* Mesh;
+
+	UPROPERTY(EditAnywhere)
+	TArray<UMaterialInterface*> Materials;
 
 	UPROPERTY(EditAnywhere)
 	int32 SpawnStep = 25;
@@ -309,17 +315,17 @@ private:
 	//===============================================================================
 	// foliage
 	//===============================================================================
+protected:
+	virtual void GenerateNewFoliage(UTerrainZoneComponent* Zone);
 
-	void GenerateNewFoliage(UTerrainZoneComponent* Zone);
+	virtual void LoadFoliage(UTerrainZoneComponent* Zone);
 
-	void LoadFoliage(UTerrainZoneComponent* Zone);
-
-	void SpawnFoliage(int32 FoliageTypeId, FSandboxFoliage& FoliageType, FVector& v, FRandomStream& rnd, UTerrainZoneComponent* Zone);
+	virtual void SpawnFoliage(int32 FoliageTypeId, FSandboxFoliage& FoliageType, FVector& v, FRandomStream& rnd, UTerrainZoneComponent* Zone);
 
 	//===============================================================================
 	// materials
 	//===============================================================================
-
+private:
 	UPROPERTY()
 	TMap<FString, UMaterialInterface*> TransitionMaterialCache;
 
